@@ -23,6 +23,5 @@ jobs:
           ls ${{ github.workspace }}
       - run: echo "🍏 This job's status is ${{ job.status }}."
 
-      - name: commit counts
-        run: |
-          git rev-list HEAD
+      - name: Create Pull Request
+        run: gh pr create -B "master" -t "merge ${{ github.ref }} into master" -b "${{ github.ref }} リリース用のブランチです"
