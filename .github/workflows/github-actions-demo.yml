@@ -27,4 +27,4 @@ jobs:
       - run: echo "🍏 This job's status is ${{ job.status }}."
 
       - name: Create Pull Request
-        run: gh pr create -B "master" -t "merge ${{ github.ref }} into master" -b "${{ github.ref }} リリース用のブランチです"
+        run: gh pr create -B "main" -t "merge ${{ github.ref }} into master" -b "${{ github.ref }} リリース用のブランチです"
