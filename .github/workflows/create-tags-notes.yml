@@ -1,0 +1,41 @@
+name: Create release tag and release note
+on: 
+  workflow_dispatch:
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  create_release_tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: "actions/checkout@v3"
+        with:
+          fetch-depth: 0
+
+      - name: Get previous tag
+        id: get_pre_tag
+        run: |
+          echo "pre_tag=$(curl -H 'Accept: application/vnd.github.v3+json' -H 'Authorization: token ${{ secrets.GITHUB_TOKEN }}' https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r .tag_name)" >> $GITHUB_OUTPUT
+
+      - name: Create release tag
+        id: release_tag
+        run: |
+          prefix="rc-"
+          branch_name=${{ github.ref_name }}
+          version=${branch_name#"$prefix"}
+          build_number=`git rev-list HEAD | wc -l | tr -d ' '`
+          echo "release_tag=release_v${build_number}_${version}" >> $GITHUB_OUTPUT
+
+      - name: Generate release note
+        id: generate_release_note
+        run: |
+          echo "release_note=$(curl -X POST -H 'Accept: application/vnd.github.v3+json' -H 'Authorization: token ${{ secrets.GITHUB_TOKEN }}' https://api.github.com/repos/${{ github.repository }}/releases/generate-notes -d '{"tag_name":"${{ steps.release_tag.outputs.release_tag }}", "previous_tag_name":"${{ steps.get_pre_tag.outputs.pre_tag }}"}' | jq .body | sed 's/"//g')" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        run: |
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -d "{ \"tag_name\": \"${{ steps.release_tag.outputs.release_tag }}\", \"name\": \"${{ steps.release_tag.outputs.release_tag }}\", \"body\": \"${{ steps.generate_release_note.outputs.release_note }}\"}" \
+            https://api.github.com/repos/${{ github.repository }}/releases
